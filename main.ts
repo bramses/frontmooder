@@ -1,17 +1,25 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, FileSystemAdapter, parseFrontMatterTags } from 'obsidian';
+import { RevealServer } from './server';
+import path from 'path';
 
 // Remember to rename these classes and interfaces!
 
 interface MyPluginSettings {
 	mySetting: string;
+	clientId: string;
+	clientSecret: string;
 }
 
 const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
+	mySetting: 'default',
+	clientId: 'default',
+	clientSecret: 'default'
 }
 
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
+	private revealServer: RevealServer;
+	private fileSystem: FileSystemAdapter;
 
 	async onload() {
 		await this.loadSettings();
@@ -76,10 +84,48 @@ export default class MyPlugin extends Plugin {
 
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
 		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+
+
+		/* 
+		todo:
+		1. get current file
+		2. get frontmatter
+		3. get tags
+		4. see if 'frontmood' tag exists
+		5. if it does, command send to server to play
+		6. if it doesn't, do nothing
+		...
+		n. same with pause
+
+		https://marcus.se.net/obsidian-plugin-docs/reference/typescript/functions/parseFrontMatterTags
+		https://alfred-spotify-mini-player.com/setup/
+		https://github.com/MSzturc/obsidian-advanced-slides/blob/17c40231c376ce26ed4373c02c04265c88654820/src/obsidianUtils.ts
+		https://developer.spotify.com/documentation/web-api/reference/#/operations/start-a-users-playback
+		https://developer.spotify.com/documentation/general/guides/authorization/client-credentials/
+		*/
+
+		this.revealServer = new RevealServer({
+			vaultDir: this.getVaultDirectory(),
+			pluginDir: this.getPluginDirectory(),
+			clientId: this.settings.clientId,
+			clientSecret: this.settings.clientSecret,
+		}, "15299");
+		this.revealServer.start();
+	}
+
+	getVaultDirectory(): string {
+		this.app = app;
+		this.fileSystem = this.app.vault.adapter as FileSystemAdapter;
+		return this.fileSystem.getBasePath();
+	}
+
+	getPluginDirectory(): string {
+		return path.join(this.getVaultDirectory(), this.app.vault.configDir, 'plugins/frontmooder/');
 	}
 
 	onunload() {
-
+		console.log('unloading plugin');
+		this.revealServer.stop();
 	}
 
 	async loadSettings() {
