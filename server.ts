@@ -2,7 +2,7 @@ import express from "express";
 import path from "path";
 import { Server } from "http";
 import { Notice } from "obsidian";
-import { ObsidianUtils } from "./obsidianUtils";
+// import { ObsidianUtils } from "./obsidianUtils";
 
 // thanks to https://github.com/MSzturc/obsidian-advanced-slides/blob/17c40231c376ce26ed4373c02c04265c88654820/src/revealServer.ts
 export class RevealServer {
@@ -15,12 +15,16 @@ export class RevealServer {
 	private _revealRenderer: RevealRenderer;
 	private _staticDir = express.static;
 	private filePath: string;
+    private clientId: string;
+    private clientSecret: string;
 
-	constructor(utils: ObsidianUtils, port: string) {
+	constructor(utils: any, port: string) {
 		const numPort = Number(port);
 		this._port = isNaN(numPort) ? 15299 : numPort;
-		this._baseDirectory = utils.getVaultDirectory();
-		this._pluginDirectory = utils.getPluginDirectory();
+        this.clientId = utils.clientId;
+        this.clientSecret = utils.clientSecret;
+		// this._baseDirectory = utils.getVaultDirectory();
+		// this._pluginDirectory = utils.getPluginDirectory();
 		this._app = express();
 	}
 
@@ -29,13 +33,13 @@ export class RevealServer {
 	}
 
 	start() {
-		["plugin", "dist", "css"].forEach((dir) => {
-			// @ts-ignore:
-			this._app.use(
-				"/" + dir,
-				this._staticDir(path.join(this._pluginDirectory, dir))
-			);
-		});
+		// ["plugin", "dist", "css"].forEach((dir) => {
+		// 	// @ts-ignore:
+		// 	this._app.use(
+		// 		"/" + dir,
+		// 		this._staticDir(path.join(this._pluginDirectory, dir))
+		// 	);
+		// });
 
 		// this._app.get("/embed/*", async (req, res) => {
 		// 	const file = req.originalUrl.replace("/embed", "");
@@ -73,6 +77,11 @@ export class RevealServer {
 			res.send(markup);
 		});
 
+        this._app.get("/song/:id", async (req, res) => {
+            const id = req.params.id;
+            console.log(`[frontmooder] - song id: ${id}`);
+        });
+
 		// this._app.get("/localFileSlash/*", async (req, res) => {
 		// 	const filepath = req.originalUrl.replace("/localFileSlash", "");
 		// 	res.download(filepath);
@@ -93,8 +102,8 @@ export class RevealServer {
 	}
 
 	authorize() {
-		const client_id = "CLIENT_ID";
-		const client_secret = "CLIENT_SECRET";
+		const client_id = this.clientId; // Your client id
+		const client_secret = this.clientSecret; // Your secret
 
 		const authOptions = {
 			url: "https://accounts.spotify.com/api/token",
@@ -111,7 +120,7 @@ export class RevealServer {
 			json: true,
 		};
 
-		this._app.post(authOptions, function (error, response, body) {
+		this._app.post(authOptions, function (error: any, response: any, body: any) {
 			if (!error && response.statusCode === 200) {
 				const token = body.access_token;
                 console.log(token);
