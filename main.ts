@@ -54,43 +54,43 @@ export default class MyPlugin extends Plugin {
 		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
 			id: "open-sample-modal-simple",
-			name: "Open sample modal (simple)",
+			name: "Send song to frontmooder",
 			callback: () => {
-				new SampleModal(this.app).open();
+				this.revealServer.queueSpotifyURN("1234");
 			},
 		});
 		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: "sample-editor-command",
-			name: "Sample editor command",
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection("Sample Editor Command");
-			},
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: "open-sample-modal-complex",
-			name: "Open sample modal (complex)",
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView =
-					this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
+		// this.addCommand({
+		// 	id: "sample-editor-command",
+		// 	name: "Sample editor command",
+		// 	editorCallback: (editor: Editor, view: MarkdownView) => {
+		// 		console.log(editor.getSelection());
+		// 		editor.replaceSelection("Sample Editor Command");
+		// 	},
+		// });
+		// // This adds a complex command that can check whether the current state of the app allows execution of the command
+		// this.addCommand({
+		// 	id: "open-sample-modal-complex",
+		// 	name: "Open sample modal (complex)",
+		// 	checkCallback: (checking: boolean) => {
+		// 		// Conditions to check
+		// 		const markdownView =
+		// 			this.app.workspace.getActiveViewOfType(MarkdownView);
+		// 		if (markdownView) {
+		// 			// If checking is true, we're simply "checking" if the command can be run.
+		// 			// If checking is false, then we want to actually perform the operation.
+		// 			if (!checking) {
+		// 				new SampleModal(this.app).open();
+		// 			}
 
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-			},
-		});
+		// 			// This command will only show up in Command Palette when the check function returns true
+		// 			return true;
+		// 		}
+		// 	},
+		// });
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
-		// this.addSettingTab(new SampleSettingTab(this.app, this));
+		this.addSettingTab(new SampleSettingTab(this.app, this));
 
 		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
 		// Using this function will automatically remove the event listener when this plugin is disabled.
@@ -123,28 +123,12 @@ export default class MyPlugin extends Plugin {
 
 		this.revealServer = new RevealServer(
 			{
-				// vaultDir: this.getVaultDirectory(),
-				// pluginDir: this.getPluginDirectory(),
-				clientId: this.settings.clientId,
-				clientSecret: this.settings.clientSecret,
+				clientId: this.settings.clientId || "default",
+				clientSecret: this.settings.clientSecret || "default",
 			},
 			"15299"
 		);
 		this.revealServer.start();
-	}
-
-	getVaultDirectory(): string {
-		this.app = app;
-		this.fileSystem = this.app.vault.adapter as FileSystemAdapter;
-		return this.fileSystem.getBasePath();
-	}
-
-	getPluginDirectory(): string {
-		return path.join(
-			this.getVaultDirectory(),
-			this.app.vault.configDir,
-			"plugins/frontmooder/"
-		);
 	}
 
 	onunload() {
@@ -162,6 +146,18 @@ export default class MyPlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+	}
+
+	updateClientID(clientId: string) {
+		this.revealServer.setClientId(clientId);
+
+		console.log(this.revealServer.toString());
+	}
+
+	updateClientSecret(clientSecret: string) {
+		this.revealServer.setClientSecret(clientSecret);
+
+		console.log(this.revealServer.toString());
 	}
 }
 
@@ -197,16 +193,32 @@ class SampleSettingTab extends PluginSettingTab {
 		containerEl.createEl("h2", { text: "Settings for my awesome plugin." });
 
 		new Setting(containerEl)
-			.setName("Setting #1")
+			.setName("Client ID")
 			.setDesc("It's a secret")
 			.addText((text) =>
 				text
 					.setPlaceholder("Enter your secret")
-					.setValue(this.plugin.settings.mySetting)
+					.setValue(this.plugin.settings.clientId)
 					.onChange(async (value) => {
 						console.log("Secret: " + value);
-						this.plugin.settings.mySetting = value;
+						this.plugin.settings.clientId = value;
 						await this.plugin.saveSettings();
+						this.plugin.updateClientID(value);
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Client Secret")
+			.setDesc("It's a secret")
+			.addText((text) =>
+				text
+					.setPlaceholder("Enter your secret")
+					.setValue(this.plugin.settings.clientSecret)
+					.onChange(async (value) => {
+						console.log("Secret: " + value);
+						this.plugin.settings.clientSecret = value;
+						await this.plugin.saveSettings();
+						this.plugin.updateClientSecret(value);
 					})
 			);
 	}

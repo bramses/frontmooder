@@ -1,36 +1,43 @@
 import express from "express";
 import path from "path";
 import { Server } from "http";
-import { Notice } from "obsidian";
+import { Notice, requestUrl, Setting } from "obsidian";
 // import { ObsidianUtils } from "./obsidianUtils";
 
 // thanks to https://github.com/MSzturc/obsidian-advanced-slides/blob/17c40231c376ce26ed4373c02c04265c88654820/src/revealServer.ts
 export class RevealServer {
+
 	private _app: express.Application;
 	private _port = 15299;
 	private _server: Server;
-	//TODO: get rid of base & plugin dir
-	private _baseDirectory: string;
-	private _pluginDirectory: string;
-	private _revealRenderer: RevealRenderer;
-	private _staticDir = express.static;
-	private filePath: string;
+	// //TODO: get rid of base & plugin dir
+	// private _baseDirectory: string;
+	// private _pluginDirectory: string;
+	// private _staticDir = express.static;
+	// private filePath: string;
     private clientId: string;
     private clientSecret: string;
 
 	constructor(utils: any, port: string) {
+		console.log(`[frontmooder] - server constructor`);
 		const numPort = Number(port);
 		this._port = isNaN(numPort) ? 15299 : numPort;
         this.clientId = utils.clientId;
         this.clientSecret = utils.clientSecret;
+
+		console.log(`client id: ${this.clientId}`);
+		console.log(`client secret: ${this.clientSecret}`);
+
 		// this._baseDirectory = utils.getVaultDirectory();
 		// this._pluginDirectory = utils.getPluginDirectory();
+
+
 		this._app = express();
 	}
 
-	getUrl(): URL {
-		return new URL(`http://localhost:${this._port}`);
-	}
+	// getUrl(): URL {
+	// 	return new URL(`http://localhost:${this._port}`);
+	// }
 
 	start() {
 		// ["plugin", "dist", "css"].forEach((dir) => {
@@ -67,19 +74,13 @@ export class RevealServer {
 		// });
 
 		this._app.get("/", async (req, res) => {
-			if (this.filePath === null) {
-				res.send("Open Presentation Preview in Obsidian first!");
-			}
-			const markup = await this._revealRenderer.renderFile(
-				this.filePath,
-				req.query
-			);
-			res.send(markup);
+			res.send("Hello World!");
 		});
 
-        this._app.get("/song/:id", async (req, res) => {
+        this._app.get("/queueSpotifyURN/:id", async (req, res) => {
             const id = req.params.id;
-            console.log(`[frontmooder] - song id: ${id}`);
+            console.log(`[frontmooder] - queueSpotifyURN id in server: ${id}`);
+			res.send("Hello Song!");
         });
 
 		// this._app.get("/localFileSlash/*", async (req, res) => {
@@ -101,37 +102,54 @@ export class RevealServer {
 			});
 	}
 
-	authorize() {
-		const client_id = this.clientId; // Your client id
-		const client_secret = this.clientSecret; // Your secret
+	// authorize() {
+	// 	const client_id = this.clientId; // Your client id
+	// 	const client_secret = this.clientSecret; // Your secret
 
-		const authOptions = {
-			url: "https://accounts.spotify.com/api/token",
-			headers: {
-				Authorization:
-					"Basic " +
-					new Buffer(client_id + ":" + client_secret).toString(
-						"base64"
-					),
-			},
-			form: {
-				grant_type: "client_credentials",
-			},
-			json: true,
-		};
+	// 	const authOptions = {
+	// 		url: "https://accounts.spotify.com/api/token",
+	// 		headers: {
+	// 			Authorization:
+	// 				"Basic " +
+	// 				new Buffer(client_id + ":" + client_secret).toString(
+	// 					"base64"
+	// 				),
+	// 		},
+	// 		form: {
+	// 			grant_type: "client_credentials",
+	// 		},
+	// 		json: true,
+	// 	};
 
-		this._app.post(authOptions, function (error: any, response: any, body: any) {
-			if (!error && response.statusCode === 200) {
-				const token = body.access_token;
-                console.log(token);
-			} else {
-                console.log(error);
-            }
-		});
+	// 	this._app.post(authOptions, function (error: any, response: any, body: any) {
+	// 		if (!error && response.statusCode === 200) {
+	// 			const token = body.access_token;
+    //             console.log(token);
+	// 		} else {
+    //             console.log(error);
+    //         }
+	// 	});
+	// }
+
+	setClientId(clientId: string) {
+		this.clientId = clientId;
+	}
+
+	setClientSecret(clientSecret: string) {
+		this.clientSecret = clientSecret;
+	}
+
+	toString() {
+		return JSON.stringify(this);
 	}
 
 	stop() {
 		this._server.close();
 		console.log(`[frontmooder] - server stopped`);
+	}
+
+	queueSpotifyURN(urn: string) {
+		console.log(`[frontmooder] - queueSpotifyURN: ${urn}`);
+		requestUrl(`http://localhost:${this._port}/queueSpotifyURN/${urn}`);
 	}
 }
