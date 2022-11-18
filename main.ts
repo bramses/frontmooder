@@ -59,6 +59,24 @@ export default class MyPlugin extends Plugin {
 				this.revealServer.queueSpotifyURN("1234");
 			},
 		});
+
+
+		this.addCommand({
+			id: "frontmooder-autorize",
+			name: "Authorize frontmooder",
+			callback: () => {
+				this.revealServer.authorize();
+			},
+		});
+
+		this.addCommand({
+			id: "frontmooder-login",
+			name: "login to frontmooder",
+			callback: () => {
+				this.revealServer.login();
+			},
+		});
+
 		// This adds an editor command that can perform some operation on the current editor instance
 		// this.addCommand({
 		// 	id: "sample-editor-command",
