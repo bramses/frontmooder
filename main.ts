@@ -56,7 +56,7 @@ export default class MyPlugin extends Plugin {
 			id: "open-sample-modal-simple",
 			name: "Send song to frontmooder",
 			callback: () => {
-				this.revealServer.queueSpotifyURN("1234");
+				this.revealServer.recentlyPlayed();
 			},
 		});
 

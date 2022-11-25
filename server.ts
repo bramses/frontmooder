@@ -1,7 +1,6 @@
 import express from "express";
-import path from "path";
 import { Server } from "http";
-import { Notice, requestUrl, Setting } from "obsidian";
+import { Notice, requestUrl } from "obsidian";
 import request from "request";
 
 // import { ObsidianUtils } from "./obsidianUtils";
@@ -47,6 +46,41 @@ export class RevealServer {
 		this._app.get("/", async (req, res) => {
 			res.send("Hello World!");
 		});
+
+		this._app.get("/recent-songs", async (req, res) => {
+			// console.log(
+			// 	`[frontmooder] - spotifyToken in queue song: ${this.spotifyToken}`
+			// );
+
+			// if (this.spotifyToken === "") {
+			// 	console.log(
+			// 		`[frontmooder] - no spotify token -- attempting to authorize`
+			// 	);
+			// 	await this.authorize();
+			// }
+			//
+			// console.log(
+			// 	`[frontmooder] - spotifyToken in queue song after auth: ${this.spotifyToken}`
+			// );
+
+			const options = {
+				url: "https://api.spotify.com/v1/me/player/recently-played?after=148481104358",
+				headers: {
+					Authorization: `Bearer`,
+					'Content-Type': 'application/json'
+				}
+			};
+
+			request.get(options, (error, response, body) => {
+				if (error) {
+					console.log(`[frontmooder] - error: ${error}`);
+				}
+				console.log(
+					`[frontmooder] - response: ${JSON.stringify(response)}`
+				);
+				console.log(`[frontmooder] - body: ${JSON.stringify(body)}`);
+			});
+		})
 
 		this._app.get("/queueSpotifyURN/:id", async (req, res) => {
 			console.log(
@@ -233,5 +267,10 @@ curl --request PUT \
 	queueSpotifyURN(urn: string) {
 		console.log(`[frontmooder] - queueSpotifyURN: ${urn}`);
 		requestUrl(`http://localhost:${this._port}/queueSpotifyURN/${urn}`);
+	}
+
+	recentlyPlayed () {
+		console.log("recently played")
+		requestUrl(`http://localhost:${this._port}/recent-songs`)
 	}
 }
