@@ -60,6 +60,14 @@ export default class MyPlugin extends Plugin {
 			},
 		});
 
+		this.addCommand({
+			id: "redir-test",
+			name: "Redirect Testing",
+			callback: () => {
+				this.revealServer.recentlyPlayed();
+			},
+		});
+
 
 		this.addCommand({
 			id: "frontmooder-autorize",

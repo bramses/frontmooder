@@ -2,6 +2,7 @@ import express from "express";
 import { Server } from "http";
 import { Notice, requestUrl } from "obsidian";
 import request from "request";
+import * as querystring from "querystring";
 
 // import { ObsidianUtils } from "./obsidianUtils";
 
@@ -43,8 +44,15 @@ export class RevealServer {
 		// 	);
 		// });
 
+		let clientId: string | null = null;
+		let clientSecret: string | null = null;
+
 		this._app.get("/", async (req, res) => {
 			res.send("Hello World!");
+		});
+
+		this._app.get('/redir-test', (req, res) => {
+			res.redirect('https://google.com');
 		});
 
 		this._app.get("/recent-songs", async (req, res) => {
@@ -144,33 +152,85 @@ curl --request PUT \
 			res.send("Hello Song!");
 		});
 
-		this._app.get("/login", function (req, res) {
+		this._app.get("/login/:clientID/:clientSecret", function (req, res) {
 			const state = "some-state-of-my-choice";
 			const scope = "user-read-private user-read-email";
 
-			res.redirect(
+			console.log(`clientID: ${req.params.clientID}`);
+			console.log(`clientSecret: ${req.params.clientSecret}`);
+
+			clientId = req.params.clientID;
+			clientSecret = req.params.clientSecret;
+
+			console.log(
 				"https://accounts.spotify.com/authorize?" +
-					JSON.stringify({
-						response_type: "code",
-						client_id: this.clientId,
-						scope: scope,
-						redirect_uri: "http://localhost:15299/callback",
-						state: state,
-					})
-			);
+				querystring.stringify({
+					response_type: "code",
+					client_id: req.params.clientID,
+					scope: scope,
+					redirect_uri: "http://localhost:15299/callback",
+					state: state,
+				})
+			)
+
+			// res.redirect(
+			// 	"https://accounts.spotify.com/authorize?" +
+			// 	querystring.stringify({
+			// 		response_type: "code",
+			// 		client_id: req.params.clientID,
+			// 		scope: scope,
+			// 		redirect_uri: "http://localhost:15299/callback",
+			// 		state: state,
+			// 	})
+			// );
 		});
+		function getAuthHeader(): string {
+			console.log(this)
+			return 'Basic ' + (new Buffer(clientId + ':' + clientSecret).toString('base64'))
+		}
+
 
 
 		this._app.get("/callback", function (req, res) {
-			console.log(`[frontmooder] - callback`);
-			// your application requests refresh and access tokens
-			// after checking the state parameter
-			console.log(`[frontmooder] - req: ${JSON.stringify(req)}`);
-			console.log(`[frontmooder] - res: ${JSON.stringify(res)}`);
+			// console.log(`[frontmooder] - callback`);
+			// // your application requests refresh and access tokens
+			// // after checking the state parameter
+			// console.log(`[frontmooder] - req: ${JSON.stringify(req)}`);
+			// console.log(`[frontmooder] - res: ${JSON.stringify(res)}`);
+			// const code = req.query.code || null;
+			// const state = req.query.state || null;
+			// console.log(`[frontmooder] - code: ${code}`);
+			// console.log(`[frontmooder] - state: ${state}`);
+
 			const code = req.query.code || null;
 			const state = req.query.state || null;
+
 			console.log(`[frontmooder] - code: ${code}`);
 			console.log(`[frontmooder] - state: ${state}`);
+
+			if (state === null) {
+				console.log(`[frontmooder] - state is mismatched from Spotify auth flow`);
+				// res.redirect('/#' +
+				// 	querystring.stringify({
+				// 		error: 'state_mismatch'
+				// 	}));
+			} else {
+				const authOptions = {
+					url: 'https://accounts.spotify.com/api/token',
+					form: {
+						code: code,
+						redirect_uri: "http://localhost:15299/callback",
+						grant_type: 'authorization_code'
+					},
+					headers: {
+						'Authorization': getAuthHeader()
+					},
+					json: true
+				};
+
+				console.log(`[frontmooder] - authOptions: ${JSON.stringify(authOptions)}`);
+				res.send("Hello World!");
+			}
 		});
 
 		this._server = this._app
@@ -185,24 +245,42 @@ curl --request PUT \
 			});
 	}
 
+
 	async login() {
 		console.log(`[frontmooder] - login`);
 
-		const state = "some-state-of-my-choice";
-			const scope = "user-read-private user-read-email";
+		// console.log("https://accounts.spotify.com/authorize?" +
+		// encodeURIComponent(JSON.stringify({
+		// 		response_type: "code",
+		// 		client_id: this,
+		// 		scope: scope,
+		// 		redirect_uri: "http://localhost:15299/callback",
+		// 		state: state,
+		// 	})))
 
-		console.log("https://accounts.spotify.com/authorize?" +
-		encodeURIComponent(JSON.stringify({
-				response_type: "code",
-				client_id: this,
-				scope: scope,
-				redirect_uri: "http://localhost:15299/callback",
-				state: state,
-			})))
-
-		requestUrl("http://localhost:15299/login");
+		requestUrl(`http://localhost:15299/login/${this.clientId}/${this.clientSecret}`);
 
 
+
+		// console.log(this)
+		//
+		// const rs = await requestUrl(
+		// 	"https://accounts.spotify.com/authorize?" +
+		// 	querystring.stringify({
+		// 		response_type: "code",
+		// 		client_id: this.clientId,
+		// 		scope: scope,
+		// 		redirect_uri: "http://localhost:15299/callback",
+		// 		state: state,
+		// 	})
+		// );
+		//
+		// console.log(rs);
+	}
+
+	async redirectTest() {
+		console.log(`[frontmooder] - redirectTest`);
+		requestUrl("http://localhost:15299/redir-test");
 	}
 
 	async authorize() {
